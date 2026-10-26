@@ -1,0 +1,29 @@
+[general]
+name=OpenAddresses Downloader
+qgisMinimumVersion=3.38
+qgisMaximumVersion=4.99
+supportsQt6=yes
+hasProcessingProvider=yes
+version=0.1.0
+author=Pedro Branco
+email=support@coldlabs.app
+description=Unofficial plugin. Download OpenAddresses address points for the map view or a polygon layer, with each source's licence.
+about=Downloads address points (number, street, unit, city, district, region, postcode) from OpenAddresses for the current map extent or the polygons of a layer.
+
+    Coverage: about 2,300 sources in 70+ countries, densest in the United States. Where two sources cover the same place, both are returned.
+
+    Reads only the map tiles over the area from the public tile files OpenAddresses publishes per source, so no account is needed. Needs GDAL 3.8 or later, which current QGIS installers include. No extra Python packages are needed.
+
+    Data licence: every source has its own licence, and many state none. Each address carries its source, licence, licence URL, who to credit and whether the licence is share-alike. Check them before you publish data made with it. This is an unofficial plugin, not made or endorsed by OpenAddresses.
+
+    Runs as a Processing algorithm, so it also works in models, batch mode and qgis_process.
+homepage=https://github.com/ColdLabs/qgis-openaddresses#readme
+repository=https://github.com/ColdLabs/qgis-openaddresses
+tracker=https://github.com/ColdLabs/qgis-openaddresses/issues
+category=Web
+icon=icon.svg
+tags=addresses,openaddresses,geocoding,download,processing,pmtiles
+changelog=0.1.0
+    - First release: download addresses by map extent or polygon layer
+    - Per-address source and licence fields
+    - Stops before reading if the area needs more map tiles than a set limit
