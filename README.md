@@ -10,7 +10,7 @@ Coverage is about 2,300 sources in 70+ countries, densest in the United States. 
 
 In QGIS: **Plugins → Manage and Install Plugins → All**, search for "OpenAddresses Downloader", then **Install**. Requires QGIS 3.38 or later (Qt5 or Qt6) with GDAL 3.8 or later, which current QGIS installers include. No extra Python packages are needed.
 
-To install from this repository instead, run `./build_zip.sh` and use **Plugins → Manage and Install Plugins → Install from ZIP**.
+To install without the plugin repository, download the zip from the [latest release](https://github.com/ColdLabs/qgis-openaddresses/releases/latest) and use **Plugins → Manage and Install Plugins → Install from ZIP**.
 
 ## Use
 
