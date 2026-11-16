@@ -36,12 +36,32 @@ def built():
     return _index()['built']
 
 
+def clean_bbox(b):
+    """The bbox as xmin, ymin, xmax, ymax, or None when it cannot be placed.
+
+    A few OpenAddresses jobs report bounds in projected units, or ordered
+    xmin, xmax, ymin, ymax. Boxes stretched by outlier points are kept: an
+    extra licence row is safer than a missing one. Boxes crossing the
+    antimeridian have xmax above 180."""
+    x0, y0, x1, y1 = b
+    if x1 - x0 > 20 and y1 - y0 > 20 and 0 <= y0 - x0 < 2 and 0 <= y1 - x1 < 2:
+        x0, y0, x1, y1 = x0, x1, y0, y1
+    if not (-180 <= x0 <= x1 <= 360 and -90 <= y0 <= y1 <= 90):
+        return None
+    return x0, y0, x1, y1
+
+
 def sources_in(xmin, ymin, xmax, ymax):
     """Indexed sources whose bounding box touches the lat/lng box."""
     found = []
     for key, info in sorted(_index()['sources'].items()):
-        x0, y0, x1, y1 = info['bbox']
-        if x0 > xmax or x1 < xmin or y0 > ymax or y1 < ymin:
+        box = clean_bbox(info['bbox'])
+        if box is None:
+            continue
+        x0, y0, x1, y1 = box
+        if y0 > ymax or y1 < ymin:
+            continue
+        if (x0 > xmax or x1 < xmin) and (x0 > xmax + 360 or x1 < xmin + 360):
             continue
         name, layer = key.split('|')
         found.append(
