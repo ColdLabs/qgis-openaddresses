@@ -23,7 +23,7 @@ category=Web
 icon=icon.svg
 tags=addresses,openaddresses,geocoding,download,processing,pmtiles
 changelog=0.2.3
-    - Metadata: drop the deprecated supportsQt6 flag (QGIS 4 support comes from qgisMaximumVersion=4.99)
+    - Metadata: drop the deprecated Qt6 flag; QGIS 4 support comes from the maximum version (4.99)
     0.2.2
     - Source licences only list a source where the area touches its own state or country, so Porto no longer lists Spain or Taiwan
     0.2.1
