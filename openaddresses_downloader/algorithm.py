@@ -4,7 +4,6 @@ import os
 from osgeo import gdal
 from qgis.core import (
     Qgis,
-    QgsApplication,
     QgsCoordinateReferenceSystem,
     QgsCoordinateTransform,
     QgsFeature,
@@ -45,12 +44,13 @@ ADDRESS_FIELDS = [
     'accuracy',
     'hash',
 ]
-
-
-def cache_dir():
-    return os.path.join(
-        QgsApplication.qgisSettingsDirPath(), 'cache', 'openaddresses'
-    )
+LICENCE_FIELDS = [
+    'source',
+    'source_layer',
+    'licence',
+    'licence_url',
+    'attribution',
+]
 
 
 def tr(text):
@@ -87,6 +87,7 @@ class DownloadAddresses(QgsProcessingAlgorithm):
     AREA = 'AREA'
     MAX_TILES = 'MAX_TILES'
     OUTPUT = 'OUTPUT'
+    LICENCES = 'LICENCES'
 
     def name(self):
         return 'download'
@@ -106,16 +107,22 @@ class DownloadAddresses(QgsProcessingAlgorithm):
             'the polygons of a layer. When polygons are set they are used '
             'and the extent is ignored.\n\n'
             'Coverage varies by country and city, and is densest in the '
-            'United States. Where two sources cover the same place (a city '
-            'and its county), both sets of addresses are returned.\n\n'
+            'United States. Addresses come from the single global file '
+            'OpenAddresses publishes.\n\n'
             'Only the map tiles over the area are read, each about 2.4 km '
             'across at the equator and smaller towards the poles. The run '
             'stops before reading if the area needs more tiles than the '
             'limit.\n\n'
-            'Licences: each source has its own. Every address carries its '
-            'source, licence, licence URL, who to credit and whether the '
-            'licence is share-alike. An empty licence means the source does '
-            'not state one; check with the publisher before reusing it.\n\n'
+            'Licences: each source has its own, and the global file does not '
+            'say which source each address came from. The Source licences '
+            'output lists every source whose coverage (a bounding box) '
+            'touches the area, with its licence, licence URL, who to credit '
+            'and whether the licence is share-alike. A source may be listed '
+            'without having addresses in the area. Where sources overlap, '
+            'you cannot tell which licence applies to which address. An '
+            'empty licence means the source does not state one; check with '
+            'the publisher before reusing the data. Sources added after the '
+            'plugin\'s source index was built are not listed.\n\n'
             'This is an unofficial plugin, not made or endorsed by '
             'OpenAddresses.'
         )
@@ -148,6 +155,15 @@ class DownloadAddresses(QgsProcessingAlgorithm):
                 self.OUTPUT,
                 tr('Addresses'),
                 QgsProcessing.SourceType.TypeVectorPoint,
+            )
+        )
+        self.addParameter(
+            QgsProcessingParameterFeatureSink(
+                self.LICENCES,
+                tr('Source licences'),
+                QgsProcessing.SourceType.TypeVector,
+                optional=True,
+                createByDefault=True,
             )
         )
 
@@ -199,45 +215,10 @@ class DownloadAddresses(QgsProcessingAlgorithm):
                     'Use a smaller area or raise the limit.'
                 ).format(tiles, max_tiles)
             )
-        try:
-            sources = catalog.sources_in(
-                bbox.xMinimum(),
-                bbox.yMinimum(),
-                bbox.xMaximum(),
-                bbox.yMaximum(),
-                cache_dir(),
-            )
-        except catalog.CatalogError as e:
-            raise QgsProcessingException(
-                tr('Cannot reach OpenAddresses: {}').format(e)
-            )
-        # Each source is read over the part of the area it covers.
-        work = []
-        for src in sources:
-            part = bbox.intersect(QgsRectangle(*src.bbox))
-            if is_rect or area.intersects(QgsGeometry.fromRect(part)):
-                work.append((src, part))
-        if not work:
-            raise QgsProcessingException(
-                tr('OpenAddresses has no address data here.')
-            )
-        feedback.pushInfo(
-            tr('{} source(s) may cover this area: {}').format(
-                len(work),
-                ', '.join('{} ({})'.format(s.name, s.layer) for s, _ in work),
-            )
-        )
 
         fields = QgsFields()
-        for name in ADDRESS_FIELDS + [
-            'source',
-            'source_layer',
-            'licence',
-            'licence_url',
-            'attribution',
-        ]:
+        for name in ADDRESS_FIELDS:
             fields.append(QgsField(name, QMetaType.Type.QString))
-        fields.append(QgsField('share_alike', QMetaType.Type.Bool))
         sink, dest = self.parameterAsSink(
             parameters,
             self.OUTPUT,
@@ -248,88 +229,125 @@ class DownloadAddresses(QgsProcessingAlgorithm):
         )
         if sink is None:
             raise QgsProcessingException(tr('Set the addresses output.'))
+        results = {self.OUTPUT: dest}
+
+        sources = catalog.sources_in(
+            bbox.xMinimum(), bbox.yMinimum(), bbox.xMaximum(), bbox.yMaximum()
+        )
+        if not is_rect:
+            sources = [
+                s
+                for s in sources
+                if area.intersects(QgsGeometry.fromRect(QgsRectangle(*s.bbox)))
+            ]
+        licence_fields = QgsFields()
+        for name in LICENCE_FIELDS:
+            licence_fields.append(QgsField(name, QMetaType.Type.QString))
+        licence_fields.append(QgsField('share_alike', QMetaType.Type.Bool))
+        licence_sink, licence_dest = self.parameterAsSink(
+            parameters,
+            self.LICENCES,
+            context,
+            licence_fields,
+            Qgis.WkbType.NoGeometry,
+            QgsCoordinateReferenceSystem(),
+        )
+        if licence_sink is None:
+            feedback.pushInfo(
+                tr('{} source(s) may cover this area.').format(len(sources))
+            )
+        else:
+            for src in sources:
+                row = QgsFeature(licence_fields)
+                row.setAttributes(
+                    [
+                        src.name,
+                        src.layer,
+                        src.licence,
+                        src.url,
+                        src.attribution,
+                        src.share_alike,
+                    ]
+                )
+                licence_sink.addFeature(row, QgsFeatureSink.Flag.FastInsert)
+            results[self.LICENCES] = licence_dest
+            feedback.pushInfo(
+                tr(
+                    '{} source(s) may cover this area; their licences are '
+                    'in the Source licences output.'
+                ).format(len(sources))
+            )
+        feedback.pushInfo(
+            tr(
+                'The source index was built on {}; sources added since then '
+                'are not listed.'
+            ).format(catalog.built())
+        )
 
         engine = None
         if not is_rect:
             engine = QgsGeometry.createGeometryEngine(area.constGet())
             engine.prepareGeometry()
         fast = QgsFeatureSink.Flag.FastInsert
-        total = 0
-        step = 100.0 / len(work)
-        for n, (src, part) in enumerate(work):
-            feedback.setProgressText(
-                tr('Source {} of {}: {}').format(n + 1, len(work), src.name)
-            )
-            source_attrs = [
-                src.name,
-                src.layer,
-                src.licence,
-                src.url,
-                src.attribution,
-                src.share_alike,
-            ]
-            feedback.setProgress(step * n)
-            x0, y0 = to_mercator(part.xMinimum(), part.yMinimum())
-            x1, y1 = to_mercator(part.xMaximum(), part.yMaximum())
-            seen = set()
-            with gdal.ExceptionMgr(useExceptions=True):
-                try:
-                    ds = gdal.OpenEx(
-                        '/vsicurl/' + src.tiles_url,
-                        gdal.OF_VECTOR,
-                        allowed_drivers=['PMTiles'],
-                    )
-                    layer = ds.GetLayer(0)
-                    layer.SetSpatialFilterRect(x0, y0, x1, y1)
-                    for f in layer:
-                        if feedback.isCanceled():
-                            return {}
-                        g = f.GetGeometryRef()
-                        # Tiles store each address as a one-point MultiPoint.
-                        if g is not None and g.GetGeometryCount():
-                            g = g.GetGeometryRef(0)
-                        if g is None or g.GetGeometryType() != 1:
-                            continue
-                        lng, lat = to_lnglat(g.GetX(), g.GetY())
-                        if not bbox.contains(lng, lat):
-                            continue
-                        values = [f[name] for name in ADDRESS_FIELDS]
-                        # Points near a tile edge are repeated in the
-                        # neighbouring tile.
-                        uid = values[-1] or (lng, lat, *values[:3])
-                        if uid in seen:
-                            continue
-                        point = QgsGeometry.fromPointXY(QgsPointXY(lng, lat))
-                        if engine is not None and not engine.contains(
-                            point.constGet()
-                        ):
-                            continue
-                        seen.add(uid)
-                        out = QgsFeature(fields)
-                        out.setGeometry(point)
-                        out.setAttributes(values + source_attrs)
-                        sink.addFeature(out, fast)
-                        if len(seen) % 20000 == 0:
-                            feedback.setProgressText(
-                                tr('Source {} of {}: {} ({} so far)').format(
-                                    n + 1, len(work), src.name, len(seen)
-                                )
-                            )
-                except RuntimeError as e:
-                    raise QgsProcessingException(
-                        tr('Reading {} failed: {}').format(src.tiles_url, e)
-                    )
-                ds = None
-            feedback.pushInfo(
-                tr('{} ({}): {} address(es)').format(
-                    src.name, src.layer, len(seen)
+        x0, y0 = to_mercator(bbox.xMinimum(), bbox.yMinimum())
+        x1, y1 = to_mercator(bbox.xMaximum(), bbox.yMaximum())
+        seen = set()
+        feedback.setProgressText(tr('Reading addresses'))
+        with gdal.ExceptionMgr(useExceptions=True):
+            try:
+                ds = gdal.OpenEx(
+                    '/vsicurl/' + catalog.FABRIC_URL,
+                    gdal.OF_VECTOR,
+                    allowed_drivers=['PMTiles'],
+                    open_options=['ZOOM_LEVEL=%d' % ZOOM],
                 )
-            )
-            total += len(seen)
+                layer = ds.GetLayer(0)
+                layer.SetSpatialFilterRect(x0, y0, x1, y1)
+                for f in layer:
+                    if feedback.isCanceled():
+                        return {}
+                    g = f.GetGeometryRef()
+                    # Tiles store each address as a one-point MultiPoint.
+                    if g is not None and g.GetGeometryCount():
+                        g = g.GetGeometryRef(0)
+                    if g is None or g.GetGeometryType() != 1:
+                        continue
+                    lng, lat = to_lnglat(g.GetX(), g.GetY())
+                    if not bbox.contains(lng, lat):
+                        continue
+                    values = [f[name] for name in ADDRESS_FIELDS]
+                    # Points near a tile edge are repeated in the
+                    # neighbouring tile.
+                    uid = values[-1] or (lng, lat, *values[:3])
+                    if uid in seen:
+                        continue
+                    point = QgsGeometry.fromPointXY(QgsPointXY(lng, lat))
+                    if engine is not None and not engine.contains(
+                        point.constGet()
+                    ):
+                        continue
+                    seen.add(uid)
+                    out = QgsFeature(fields)
+                    out.setGeometry(point)
+                    out.setAttributes(values)
+                    sink.addFeature(out, fast)
+                    if len(seen) % 20000 == 0:
+                        feedback.setProgressText(
+                            tr('Reading addresses ({} so far)').format(
+                                len(seen)
+                            )
+                        )
+            except RuntimeError as e:
+                raise QgsProcessingException(
+                    tr('Reading {} failed: {}').format(catalog.FABRIC_URL, e)
+                )
+            ds = None
 
+        total = len(seen)
         feedback.pushInfo(tr('{} address(es) in total').format(total))
         if not total:
             feedback.pushWarning(
                 tr('OpenAddresses has no addresses inside this area.')
             )
-        return {self.OUTPUT: dest, 'COUNT': total}
+        results['COUNT'] = total
+        return results
