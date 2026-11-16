@@ -6,7 +6,7 @@ Downloads [OpenAddresses](https://openaddresses.io/) address points for the map 
 
 A second output, **Source licences**, lists the sources that may cover the area and their licences. It is a table without geometry: `source`, `source_layer`, `licence`, `licence_url`, `attribution`, `share_alike`.
 
-Coverage is about 2,300 sources in 70+ countries, densest in the United States.
+Coverage is about 2,300 sources in 70+ countries, densest in the United States. Where two sources cover the same place (a city and its county), the same address can appear once for each.
 
 ## Install
 

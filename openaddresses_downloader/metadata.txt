@@ -10,7 +10,7 @@ email=support@coldlabs.app
 description=Unofficial plugin. Download OpenAddresses address points for the map view or a polygon layer, with the licences of the sources that cover it.
 about=Downloads address points (number, street, unit, city, district, region, postcode) from OpenAddresses for the current map extent or the polygons of a layer.
 
-    Coverage: about 2,300 sources in 70+ countries, densest in the United States.
+    Coverage: about 2,300 sources in 70+ countries, densest in the United States. Where two sources cover the same place, the same address can appear once for each.
 
     Reads only the map tiles over the area from the single global address file OpenAddresses publishes, so no account is needed and no API calls are made. Needs GDAL 3.8 or later, which current QGIS installers include. No extra Python packages are needed.
 
