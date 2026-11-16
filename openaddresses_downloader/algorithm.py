@@ -50,7 +50,10 @@ LICENCE_FIELDS = [
     'licence',
     'licence_url',
     'attribution',
+    'website',
+    'coverage_note',
 ]
+STRETCHED = 'Bounding box stretched by stray points; may not cover this area'
 
 
 def tr(text):
@@ -121,9 +124,11 @@ class DownloadAddresses(QgsProcessingAlgorithm):
             'touches the area, with its licence, licence URL, who to credit '
             'and whether the licence is share-alike. A source may be listed '
             'without having addresses in the area. Where sources overlap, '
-            'you cannot tell which licence applies to which address. An '
-            'empty licence means the source does not state one; check with '
-            'the publisher before reusing the data. Sources added after the '
+            'you cannot tell which licence applies to which address. A '
+            'coverage note marks sources whose box is stretched far beyond '
+            'their data. An empty licence means the source does not state '
+            'one; check the terms on the publisher\'s website (the website '
+            'field) before reusing the data. Sources added after the '
             'plugin\'s source index was built are not listed.\n\n'
             'This is an unofficial plugin, not made or endorsed by '
             'OpenAddresses.'
@@ -268,6 +273,8 @@ class DownloadAddresses(QgsProcessingAlgorithm):
                         src.licence,
                         src.url,
                         src.attribution,
+                        src.website,
+                        STRETCHED if src.stretched else '',
                         src.share_alike,
                     ]
                 )

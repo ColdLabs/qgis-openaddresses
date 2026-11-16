@@ -23,6 +23,20 @@ class Source:
     url: str = ''
     attribution: str = ''
     share_alike: object = None  # True, False or None when not stated
+    website: str = ''
+
+    @property
+    def stretched(self):
+        """Whether the box is far larger than this kind of source can be.
+
+        Stray points (at 0,0, at the South Pole, or with a flipped sign)
+        stretch some boxes across oceans. Such a source is still listed, since
+        it may apply, but flagged."""
+        if self.layer == 'country':
+            return False
+        limit = 30 if self.layer.startswith('state') else 20
+        x0, y0, x1, y1 = self.bbox
+        return max(x1 - x0, y1 - y0) > limit
 
 
 @functools.lru_cache(maxsize=1)
@@ -73,6 +87,7 @@ def sources_in(xmin, ymin, xmax, ymax):
                 info.get('url', ''),
                 info.get('attribution', ''),
                 info.get('share_alike'),
+                info.get('website', ''),
             )
         )
     return found

@@ -4,7 +4,7 @@
 
 Downloads [OpenAddresses](https://openaddresses.io/) address points for the map view or the polygons of a layer. Attributes: `number`, `street`, `unit`, `city`, `district`, `region`, `postcode`, `id`, `accuracy`, `hash`. Output CRS is EPSG:4326.
 
-A second output, **Source licences**, lists the sources that may cover the area and their licences. It is a table without geometry: `source`, `source_layer`, `licence`, `licence_url`, `attribution`, `share_alike`.
+A second output, **Source licences**, lists the sources that may cover the area and their licences. It is a table without geometry: `source`, `source_layer`, `licence`, `licence_url`, `attribution`, `website`, `coverage_note`, `share_alike`.
 
 Coverage is about 2,300 sources in 70+ countries, densest in the United States. Where two sources cover the same place (a city and its county), the same address can appear once for each.
 
@@ -48,11 +48,11 @@ python3 tools/build_index.py
 
 Every OpenAddresses source has its own licence, and many do not state one. The global file does not say which source each address came from. So the plugin cannot put a licence on each address.
 
-Instead, the Source licences output lists every source whose bounding box touches the area. Each row has the licence, licence URL, the name to credit and whether the licence is share-alike, as recorded in the [openaddresses/openaddresses](https://github.com/openaddresses/openaddresses) source files.
+Instead, the Source licences output lists every source whose bounding box touches the area. Each row has the licence, licence URL, the name to credit, whether the licence is share-alike and the publisher's website, as recorded in the [openaddresses/openaddresses](https://github.com/openaddresses/openaddresses) source files.
 
 - Where sources overlap, you cannot tell which licence applies to which address. Treat every listed licence as possibly applying.
-- Some sources have bounding boxes far larger than their data, so a source can be listed for an area where it has no addresses.
-- An empty licence means the source does not state one. Check with the publisher before reusing the data.
+- Some sources have bounding boxes far larger than their data, so a source can be listed for an area where it has no addresses. When a box is much larger than that kind of source can be (over 20° for a city or county, over 30° for a state), `coverage_note` says so. The row stays, because the source may still apply.
+- An empty licence means the source does not state one. Check the terms on the publisher's website (`website`) before reusing the data.
 - Sources added to OpenAddresses after the index was built are not listed. The run log gives the index date.
 
 This is an unofficial plugin, not made or endorsed by OpenAddresses.
