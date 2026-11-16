@@ -2,9 +2,8 @@
 name=OpenAddresses Downloader
 qgisMinimumVersion=3.38
 qgisMaximumVersion=4.99
-supportsQt6=yes
 hasProcessingProvider=yes
-version=0.2.2
+version=0.2.3
 author=Pedro Branco
 email=support@coldlabs.app
 description=Unofficial plugin. Download OpenAddresses address points for the map view or a polygon layer, with the licences of the sources that cover it.
@@ -23,7 +22,9 @@ tracker=https://github.com/ColdLabs/qgis-openaddresses/issues
 category=Web
 icon=icon.svg
 tags=addresses,openaddresses,geocoding,download,processing,pmtiles
-changelog=0.2.2
+changelog=0.2.3
+    - Metadata: drop the deprecated supportsQt6 flag (QGIS 4 support comes from qgisMaximumVersion=4.99)
+    0.2.2
     - Source licences only list a source where the area touches its own state or country, so Porto no longer lists Spain or Taiwan
     0.2.1
     - Source licences gain the publisher's website, for checking terms when a source states no licence
