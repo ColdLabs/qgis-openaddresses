@@ -4,7 +4,7 @@ qgisMinimumVersion=3.38
 qgisMaximumVersion=4.99
 supportsQt6=yes
 hasProcessingProvider=yes
-version=0.2.0
+version=0.2.1
 author=Pedro Branco
 email=support@coldlabs.app
 description=Unofficial plugin. Download OpenAddresses address points for the map view or a polygon layer, with the licences of the sources that cover it.
@@ -23,7 +23,11 @@ tracker=https://github.com/ColdLabs/qgis-openaddresses/issues
 category=Web
 icon=icon.svg
 tags=addresses,openaddresses,geocoding,download,processing,pmtiles
-changelog=0.2.0
+changelog=0.2.1
+    - Source licences gain the publisher's website, for checking terms when a source states no licence
+    - Sources whose bounding box is stretched by stray points get a coverage note
+    - Bounding boxes in projected units are skipped and swapped ones fixed
+    0.2.0
     - Reads the single global address file OpenAddresses publishes, as OpenAddresses asked
     - No API calls per run
     - Licences are listed per area in a new Source licences output, instead of on each address
