@@ -120,9 +120,10 @@ class DownloadAddresses(QgsProcessingAlgorithm):
             'limit.\n\n'
             'Licences: each source has its own, and the global file does not '
             'say which source each address came from. The Source licences '
-            'output lists every source whose coverage (a bounding box) '
-            'touches the area, with its licence, licence URL, who to credit '
-            'and whether the licence is share-alike. A source may be listed '
+            'output lists every source whose bounding box touches the area '
+            'and whose state or country does too, with its licence, '
+            'licence URL, who to credit and whether the licence is '
+            'share-alike. A source may be listed '
             'without having addresses in the area. Where sources overlap, '
             'you cannot tell which licence applies to which address. A '
             'coverage note marks sources whose box is stretched far beyond '
@@ -247,6 +248,8 @@ class DownloadAddresses(QgsProcessingAlgorithm):
                 for s in sources
                 if area.intersects(QgsGeometry.fromRect(QgsRectangle(*s.bbox)))
             ]
+        area_wkt = area.asWkt()
+        sources = [s for s in sources if catalog.in_its_region(s, area_wkt)]
         licence_fields = QgsFields()
         for name in LICENCE_FIELDS:
             licence_fields.append(QgsField(name, QMetaType.Type.QString))

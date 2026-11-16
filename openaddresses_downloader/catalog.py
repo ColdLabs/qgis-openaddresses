@@ -10,8 +10,11 @@ import json
 import os
 from dataclasses import dataclass
 
+from osgeo import ogr
+
 FABRIC_URL = 'https://v2.openaddresses.io/fabric/addresses.pmtiles'
 INDEX = os.path.join(os.path.dirname(__file__), 'sources.json')
+OUTLINES = os.path.join(os.path.dirname(__file__), 'outlines.json')
 
 
 @dataclass
@@ -43,6 +46,31 @@ class Source:
 def _index():
     with open(INDEX) as f:
         return json.load(f)
+
+
+@functools.lru_cache(maxsize=1)
+def _outlines():
+    with open(OUTLINES) as f:
+        return json.load(f)
+
+
+@functools.lru_cache(maxsize=None)
+def _outline(code):
+    geo = _outlines().get(code)
+    return geo and ogr.CreateGeometryFromJson(json.dumps(geo))
+
+
+def in_its_region(source, area_wkt):
+    """Whether the area touches the state, or else the country, the source
+    belongs to.
+
+    A bounding box alone lists es/countrywide for Porto, and boxes stretched
+    by stray points list sources oceans away. A source with no outline for
+    its state or country is kept."""
+    parts = source.name.split('/')
+    outline = _outline('/'.join(parts[:2])) or _outline(parts[0])
+    area = ogr.CreateGeometryFromWkt(area_wkt)
+    return not outline or outline.Intersects(area)
 
 
 def built():

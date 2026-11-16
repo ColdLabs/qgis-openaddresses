@@ -34,7 +34,7 @@ OpenAddresses publishes every address in one global PMTiles file, `https://v2.op
 
 1. Reads only the zoom-14 tiles over the area through GDAL.
 2. Keeps the addresses inside the area, and drops the copies that tippecanoe repeats along tile edges.
-3. Lists the sources whose bounding box touches the area, from `sources.json`. This index of every source's bounding box and licence ships with the plugin and is used only for the licence list.
+3. Lists the sources whose bounding box touches the area, from `sources.json`, then keeps those whose state or country also touches it, from `outlines.json`. Both files ship with the plugin and are used only for the licence list. The outlines are [Natural Earth](https://www.naturalearthdata.com/) 1:50m countries and states (public domain), grown by about 5 km so coasts and small islands count as inside. A source whose state and country have no outline is kept.
 
 No OpenAddresses API calls are made during a run. GDAL reads the tiles over HTTP itself; QGIS passes its proxy settings on to GDAL.
 
@@ -44,11 +44,13 @@ Rebuild the index before a release:
 python3 tools/build_index.py
 ```
 
+`python3 tools/build_index.py --keep-boxes` refreshes only the licences and websites from the openaddresses/openaddresses repository and makes no API calls. `tools/build_outlines.py` rebuilds `outlines.json` and needs GDAL's Python bindings, for example `/Applications/QGIS.app/Contents/MacOS/python tools/build_outlines.py`.
+
 ## Data licence
 
 Every OpenAddresses source has its own licence, and many do not state one. The global file does not say which source each address came from. So the plugin cannot put a licence on each address.
 
-Instead, the Source licences output lists every source whose bounding box touches the area. Each row has the licence, licence URL, the name to credit, whether the licence is share-alike and the publisher's website, as recorded in the [openaddresses/openaddresses](https://github.com/openaddresses/openaddresses) source files.
+Instead, the Source licences output lists every source whose bounding box touches the area, inside its own state or country. Each row has the licence, licence URL, the name to credit, whether the licence is share-alike and the publisher's website, as recorded in the [openaddresses/openaddresses](https://github.com/openaddresses/openaddresses) source files.
 
 - Where sources overlap, you cannot tell which licence applies to which address. Treat every listed licence as possibly applying.
 - Some sources have bounding boxes far larger than their data, so a source can be listed for an area where it has no addresses. When a box is much larger than that kind of source can be (over 20° for a city or county, over 30° for a state), `coverage_note` says so. The row stays, because the source may still apply.
