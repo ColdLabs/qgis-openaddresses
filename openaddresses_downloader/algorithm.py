@@ -54,6 +54,10 @@ LICENCE_FIELDS = [
     'coverage_note',
 ]
 STRETCHED = 'Bounding box stretched by stray points; may not cover this area'
+ESTIMATED = (
+    'Estimated coverage: box from the area the source names (county, city, '
+    'state or country), not from its data'
+)
 
 
 def tr(text):
@@ -127,7 +131,9 @@ class DownloadAddresses(QgsProcessingAlgorithm):
             'without having addresses in the area. Where sources overlap, '
             'you cannot tell which licence applies to which address. A '
             'coverage note marks sources whose box is stretched far beyond '
-            'their data. An empty licence means the source does not state '
+            'their data, and sources with no box from their data, whose '
+            'coverage is estimated from the county, city, state or country '
+            'they name. An empty licence means the source does not state '
             'one; check the terms on the publisher\'s website (the website '
             'field) before reusing the data. Sources added after the '
             'plugin\'s source index was built are not listed.\n\n'
@@ -277,7 +283,7 @@ class DownloadAddresses(QgsProcessingAlgorithm):
                         src.url,
                         src.attribution,
                         src.website,
-                        STRETCHED if src.stretched else '',
+                        src.coverage_note(ESTIMATED, STRETCHED),
                         src.share_alike,
                     ]
                 )

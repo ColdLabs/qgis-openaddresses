@@ -6,7 +6,7 @@ Downloads [OpenAddresses](https://openaddresses.io/) address points for the map 
 
 A second output, **Source licences**, lists the sources that may cover the area and their licences. It is a table without geometry: `source`, `source_layer`, `licence`, `licence_url`, `attribution`, `website`, `coverage_note`, `share_alike`.
 
-Coverage is about 2,300 sources in 70+ countries, densest in the United States. Where two sources cover the same place (a city and its county), the same address can appear once for each.
+Coverage is about 2,700 sources in 70+ countries, densest in the United States. Where two sources cover the same place (a city and its county), the same address can appear once for each.
 
 ![Address points in central Lisbon, Portugal](docs/screenshot-lisbon.png)
 
@@ -38,7 +38,7 @@ OpenAddresses publishes every address in one global PMTiles file, `https://v2.op
 
 1. Reads only the zoom-14 tiles over the area through GDAL.
 2. Keeps the addresses inside the area, and drops the copies that tippecanoe repeats along tile edges.
-3. Lists the sources whose bounding box touches the area, from `sources.json`, then keeps those whose state or country also touches it, from `outlines.json`. Both files ship with the plugin and are used only for the licence list. The outlines are [Natural Earth](https://www.naturalearthdata.com/) 1:50m countries and states (public domain), grown by about 5 km so coasts and small islands count as inside. A source whose state and country have no outline is kept.
+3. Lists the sources whose bounding box touches the area, from `sources.json`, then keeps those whose state or country also touches it, from `outlines.json`. Both files ship with the plugin and are used only for the licence list. The outlines are [Natural Earth](https://www.naturalearthdata.com/) 1:10m countries and states (public domain), grown by about 1 km so the coast counts as inside, and cut back where they reach a neighbouring state or country. A source whose state and country have no outline is kept.
 
 No OpenAddresses API calls are made during a run. GDAL reads the tiles over HTTP itself; QGIS passes its proxy settings on to GDAL.
 
@@ -48,7 +48,11 @@ Rebuild the index before a release:
 python3 tools/build_index.py
 ```
 
-`python3 tools/build_index.py --keep-boxes` refreshes only the licences and websites from the openaddresses/openaddresses repository and makes no API calls. `tools/build_outlines.py` rebuilds `outlines.json` and needs GDAL's Python bindings, for example `/Applications/QGIS.app/Contents/MacOS/python tools/build_outlines.py`.
+`python3 tools/build_index.py --keep-boxes` refreshes only the licences and websites from the openaddresses/openaddresses repository and re-estimates the sources without tiles. It makes one OpenAddresses API call, for the list of layers.
+
+About 410 active sources have run output but no map tiles of their own, often because their latest good run predates tiles, so they have no box from their data. Active sources that have never run are skipped, since their addresses cannot be in the global file. The index builder gives each one an estimated box from the area its source file names: its coverage geometry (a point gets about 25 km either side), its US county, or its state or country, from Natural Earth. These rows have `"estimated": true` in `sources.json`. A city or county that names no area finer than its state is left out, so it does not show up across the whole state. The builder prints those, about 30.
+
+Then rebuild the outlines, which follow the countries and states in `sources.json`. `tools/build_outlines.py` rebuilds `outlines.json` and needs GDAL's Python bindings, for example `/Applications/QGIS.app/Contents/MacOS/python tools/build_outlines.py`.
 
 ## Data licence
 
@@ -59,6 +63,8 @@ Instead, the Source licences output lists every source whose bounding box touche
 - Where sources overlap, you cannot tell which licence applies to which address. Treat every listed licence as possibly applying.
 - Some sources have bounding boxes far larger than their data, so a source can be listed for an area where it has no addresses. When a box is much larger than that kind of source can be (over 20° for a city or county, over 30° for a state), `coverage_note` says so. The row stays, because the source may still apply.
 - An empty licence means the source does not state one. Check the terms on the publisher's website (`website`) before reusing the data.
+- Sources with no box from their data have an estimated one, from the county, city, state or country they name. `coverage_note` says so. Their row may cover a larger area than their data.
+- About 30 city and county sources that name no area finer than their state are not listed.
 - Sources added to OpenAddresses after the index was built are not listed. The run log gives the index date.
 
 This is an unofficial plugin, not made or endorsed by OpenAddresses.

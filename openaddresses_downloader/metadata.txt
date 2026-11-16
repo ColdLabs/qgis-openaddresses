@@ -3,7 +3,7 @@ name=OpenAddresses Downloader
 qgisMinimumVersion=3.38
 qgisMaximumVersion=4.99
 hasProcessingProvider=yes
-version=0.2.3
+version=0.2.4
 author=Pedro Branco
 email=support@coldlabs.app
 description=Unofficial plugin. Download OpenAddresses address points for the map view or a polygon layer, with the licences of the sources that cover it.
@@ -22,7 +22,10 @@ tracker=https://github.com/ColdLabs/qgis-openaddresses/issues
 category=Web
 icon=icon.svg
 tags=addresses,openaddresses,geocoding,download,processing,pmtiles
-changelog=0.2.3
+changelog=0.2.4
+    - Source licences list about 410 more sources, the ones with no map tiles of their own (such as New Jersey statewide), with coverage estimated from the county, city, state or country they name
+    - State and country outlines are more precise (Natural Earth 1:10m, stopped at borders), so Manhattan no longer lists New Jersey sources and Jersey City no longer lists New York ones
+    0.2.3
     - Metadata: drop the deprecated Qt6 flag; QGIS 4 support comes from the maximum version (4.99)
     0.2.2
     - Source licences only list a source where the area touches its own state or country, so Porto no longer lists Spain or Taiwan

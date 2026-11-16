@@ -27,6 +27,12 @@ class Source:
     attribution: str = ''
     share_alike: object = None  # True, False or None when not stated
     website: str = ''
+    estimated: bool = False  # box from the area the source names, not its data
+
+    def coverage_note(self, estimated_note, stretched_note):
+        if self.estimated:
+            return estimated_note
+        return stretched_note if self.stretched else ''
 
     @property
     def stretched(self):
@@ -116,6 +122,7 @@ def sources_in(xmin, ymin, xmax, ymax):
                 info.get('attribution', ''),
                 info.get('share_alike'),
                 info.get('website', ''),
+                info.get('estimated', False),
             )
         )
     return found
