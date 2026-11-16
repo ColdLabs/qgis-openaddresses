@@ -8,6 +8,10 @@ A second output, **Source licences**, lists the sources that may cover the area 
 
 Coverage is about 2,300 sources in 70+ countries, densest in the United States. Where two sources cover the same place (a city and its county), the same address can appear once for each.
 
+![Address points in central Lisbon, Portugal](docs/screenshot-lisbon.png)
+
+*Central Lisbon, Portugal: 9,322 address points from the plugin. The Source licences output named one source here, pt/countrywide (Instituto Nacional de Estatística, CC BY 4.0).*
+
 ## Install
 
 In QGIS: **Plugins → Manage and Install Plugins → All**, search for "OpenAddresses Downloader", then **Install**. Requires QGIS 3.38 or later (Qt5 or Qt6) with GDAL 3.8 or later, which current QGIS installers include. No extra Python packages are needed.
