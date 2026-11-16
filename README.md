@@ -2,9 +2,11 @@
 
 > **Unofficial.** This plugin is not made, endorsed or supported by OpenAddresses. It reads the files OpenAddresses publishes. Report problems with the plugin [here](https://github.com/ColdLabs/qgis-openaddresses/issues), not to OpenAddresses.
 
-Downloads [OpenAddresses](https://openaddresses.io/) address points for the map view or the polygons of a layer. Attributes: `number`, `street`, `unit`, `city`, `district`, `region`, `postcode`, `id`, `accuracy`, `hash`, plus the source and its licence (`source`, `source_layer`, `licence`, `licence_url`, `attribution`, `share_alike`). Output CRS is EPSG:4326.
+Downloads [OpenAddresses](https://openaddresses.io/) address points for the map view or the polygons of a layer. Attributes: `number`, `street`, `unit`, `city`, `district`, `region`, `postcode`, `id`, `accuracy`, `hash`. Output CRS is EPSG:4326.
 
-Coverage is about 2,300 sources in 70+ countries, densest in the United States. Where two sources cover the same place (a city and its county), both sets of addresses are returned.
+A second output, **Source licences**, lists the sources that may cover the area and their licences. It is a table without geometry: `source`, `source_layer`, `licence`, `licence_url`, `attribution`, `share_alike`.
+
+Coverage is about 2,300 sources in 70+ countries, densest in the United States.
 
 ## Install
 
@@ -19,22 +21,22 @@ To install without the plugin repository, download the zip from the [latest rele
 - Command line:
 
 ```
-qgis_process run openaddresses:download -- EXTENT="-9.16,-9.12,38.70,38.74 [EPSG:4326]" OUTPUT=addresses.gpkg
+qgis_process run openaddresses:download -- EXTENT="-9.16,-9.12,38.70,38.74 [EPSG:4326]" OUTPUT=addresses.gpkg LICENCES=licences.gpkg
 ```
+
+The dialog writes two outputs: the addresses and the Source licences table. `qgis_process` writes the licences table only when `LICENCES` is set. Read the licences before you reuse the addresses.
 
 The run stops before reading anything if the area covers more zoom-14 map tiles than "Stop if the area needs more map tiles than" (2000 by default). A tile is about 2.4 km across at the equator and smaller towards the poles.
 
 ## How it fetches data
 
-OpenAddresses publishes each source's latest run as a PMTiles file at `v2.openaddresses.io/batch-prod/job/<job>/source.pmtiles`. The zoom-14 tiles hold every address. The plugin:
+OpenAddresses publishes every address in one global PMTiles file, `https://v2.openaddresses.io/fabric/addresses.pmtiles`. Its zoom-14 tiles hold every address. The plugin:
 
-1. Asks the OpenAddresses API for the current job of every address source (one request).
-2. Picks the sources whose bounding box touches the area, using `sources.json`, an index of every source's bounding box and licence that ships with the plugin. Sources newer than the index get their bounds from the API once; these are cached in `<QGIS profile>/cache/openaddresses/`.
-3. Reads only the tiles over the area through GDAL, keeps the addresses inside it, and drops the copies that tippecanoe repeats along tile edges.
+1. Reads only the zoom-14 tiles over the area through GDAL.
+2. Keeps the addresses inside the area, and drops the copies that tippecanoe repeats along tile edges.
+3. Lists the sources whose bounding box touches the area, from `sources.json`. This index of every source's bounding box and licence ships with the plugin and is used only for the licence list.
 
-GDAL reads the tiles over HTTP itself; QGIS passes its proxy settings on to GDAL.
-
-Some sources have bounding boxes far larger than their data (one Taiwanese source spans most of the northern hemisphere), because OpenAddresses computes them from the published points. Those sources are opened but return no addresses, which costs a second or two each.
+No OpenAddresses API calls are made during a run. GDAL reads the tiles over HTTP itself; QGIS passes its proxy settings on to GDAL.
 
 Rebuild the index before a release:
 
@@ -44,7 +46,16 @@ python3 tools/build_index.py
 
 ## Data licence
 
-Every OpenAddresses source has its own licence, and many do not state one. Each address carries the licence, licence URL, the name to credit and whether the licence is share-alike, as recorded in the [openaddresses/openaddresses](https://github.com/openaddresses/openaddresses) source files. An empty licence means the source does not state one: check with the publisher before reusing the data. This is an unofficial plugin, not made or endorsed by OpenAddresses.
+Every OpenAddresses source has its own licence, and many do not state one. The global file does not say which source each address came from. So the plugin cannot put a licence on each address.
+
+Instead, the Source licences output lists every source whose bounding box touches the area. Each row has the licence, licence URL, the name to credit and whether the licence is share-alike, as recorded in the [openaddresses/openaddresses](https://github.com/openaddresses/openaddresses) source files.
+
+- Where sources overlap, you cannot tell which licence applies to which address. Treat every listed licence as possibly applying.
+- Some sources have bounding boxes far larger than their data, so a source can be listed for an area where it has no addresses.
+- An empty licence means the source does not state one. Check with the publisher before reusing the data.
+- Sources added to OpenAddresses after the index was built are not listed. The run log gives the index date.
+
+This is an unofficial plugin, not made or endorsed by OpenAddresses.
 
 ## Development
 
